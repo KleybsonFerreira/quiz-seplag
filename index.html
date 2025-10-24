@@ -274,20 +274,40 @@
     }
 
     // REINICIAR: limpa respostas e volta pra Pergunta 1 com votação aberta
-    async function resetGame() {
-      if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
-      if (unsubscribeResponses) unsubscribeResponses();
-      try {
-        const snapshot = await getDocs(query(responsesRef));
-        if (!snapshot.empty) {
-          const batch = writeBatch(db);
-          snapshot.forEach((d) => batch.delete(d.ref));
-          await batch.commit();
-        }
-        await setDoc(gameStateRef, { currentQuestionIndex: 0, isVotingOpen: true, timerStartTime: serverTimestamp() });
-        listenToResponses();
-      } catch (e) { console.error('resetGame', e); }
+async function resetGame() {
+  // limpa timers e listeners locais
+  if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
+  if (localTimerInterval) { clearInterval(localTimerInterval); }
+  if (unsubscribeResponses) unsubscribeResponses();
+
+  try {
+    // 1) Apaga TODAS as respostas
+    const snapshot = await getDocs(query(responsesRef));
+    if (!snapshot.empty) {
+      const batch = writeBatch(db);
+      snapshot.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
     }
+
+    // 2) Recomeça do zero já na Pergunta 1 (índice 0) com votação aberta e timer novo
+    await setDoc(
+      gameStateRef,
+      {
+        currentQuestionIndex: 0,
+        isVotingOpen: true,
+        timerStartTime: serverTimestamp()
+      },
+      { merge: true }
+    );
+
+    // 3) Volta a escutar a coleção de respostas para a nova pergunta
+    listenToResponses();
+
+  } catch (e) {
+    console.error('resetGame', e);
+  }
+}
+
 
     async function submitResponse() {
       const input = document.getElementById('response-input');
@@ -353,8 +373,9 @@
               <i class="ph-bold ph-arrow-right mr-2"></i>${buttonText}
             </button>
             <button id="reset-btn" class="flex-1 bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-md hover:bg-red-700 transition">
-              <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo
-            </button>
+  <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo
+</button>
+
           </div>
         </div>`;
 
@@ -362,30 +383,32 @@
       if (isGameFinished) nextBtn.onclick = resetGame; else nextBtn.onclick = nextQuestion;
 
       const resetBtn = document.getElementById('reset-btn');
-      let resetConfirmationTimeout = null;
-      resetBtn.onclick = () => {
-        if (!resetBtn.dataset.pending) {
-          resetBtn.dataset.pending = 'true';
-          resetBtn.classList.remove('bg-red-600','hover:bg-red-700');
-          resetBtn.classList.add('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
-          resetBtn.innerHTML = `<i class="ph-bold ph-warning-circle mr-2"></i>Confirmar Reinício? (clique de novo)`;
-          resetConfirmationTimeout = setTimeout(() => {
-            if (resetBtn.dataset.pending === 'true') {
-              resetBtn.dataset.pending = '';
-              resetBtn.classList.add('bg-red-600','hover:bg-red-700');
-              resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
-              resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo`;
-            }
-          }, 5000);
-        } else {
-          clearTimeout(resetConfirmationTimeout);
-          resetBtn.dataset.pending = '';
-          resetBtn.classList.add('bg-red-600','hover:bg-red-700');
-          resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
-          resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciando...`;
-          resetGame();
-        }
-      };
+let resetConfirmationTimeout = null;
+
+resetBtn.onclick = () => {
+  if (!resetBtn.dataset.pending) {
+    resetBtn.dataset.pending = 'true';
+    resetBtn.classList.remove('bg-red-600','hover:bg-red-700');
+    resetBtn.classList.add('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+    resetBtn.innerHTML = `<i class="ph-bold ph-warning-circle mr-2"></i>Confirmar Reinício? (clique de novo)`;
+    resetConfirmationTimeout = setTimeout(() => {
+      if (resetBtn.dataset.pending === 'true') {
+        resetBtn.dataset.pending = '';
+        resetBtn.classList.add('bg-red-600','hover:bg-red-700');
+        resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+        resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo`;
+      }
+    }, 5000);
+  } else {
+    clearTimeout(resetConfirmationTimeout);
+    resetBtn.dataset.pending = '';
+    resetBtn.classList.add('bg-red-600','hover:bg-red-700');
+    resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+    resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciando...`;
+    resetGame(); // <<--- importante
+  }
+};
+
 
       updateAdminTimer(isVotingOpen, timerStartTime);
       setupModal();
