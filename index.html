@@ -93,8 +93,17 @@
 
     let gameStateRef;
     let responsesRef;
-
+    let lastFreqMap = {}
     const WORD_COLORS = ['#4f46e5','#db2777','#16a34a','#ca8a04','#0891b2','#be185d','#059669','#d97706','#6d28d9','#4338ca'];
+
+    // 🔤 NORMALIZAÇÃO — (ADICIONADO)
+    function normalizeWord(str) {
+      return str
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // remove acentos
+    }
 
     async function initializeFirebase() {
       try {
@@ -301,9 +310,10 @@
       }
     }
 
+    // (ALTERADO) — agora normaliza o texto antes de enviar
     async function submitResponse() {
       const input = document.getElementById('response-input');
-      const word = (input?.value || '').trim();
+      const word = normalizeWord(input?.value || ''); // <<< aqui
       if (!word) { alert('Por favor, digite um nome.'); return; }
       if (!currentGameState || !currentGameState.isVotingOpen) { alert('A votação está encerrada para esta pergunta.'); return; }
       try {
@@ -485,6 +495,7 @@
         if (word) acc[word] = (acc[word] || 0) + 1;
         return acc;
       }, {});
+      lastFreqMap = frequencies;
       const wordData = Object.entries(frequencies).map(([text, count]) => ({ text, count }));
       const counts = wordData.map(d => d.count);
       const minCount = Math.min(...counts), maxCount = Math.max(...counts);
@@ -510,11 +521,66 @@
       const hide = () => modal.classList.add('opacity-0','scale-95','pointer-events-none');
       closeBtn.onclick = hide; modal.onclick = (e)=>{ if (e.target === modal) hide(); };
     }
-    function showWordCountModal(word,count) {
-      document.getElementById('modal-word').innerText = word;
-      document.getElementById('modal-count').innerText = count;
-      document.getElementById('word-count-modal').classList.remove('opacity-0','scale-95','pointer-events-none');
-    }
+    function showWordCountModal(clickedWord, clickedCount) {
+  const modal = document.getElementById('word-count-modal');
+  const box = modal.querySelector('div.bg-white'); // container interno do modal
+
+  // Gera a lista ordenada por contagem desc
+  const items = Object.entries(lastFreqMap)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+  const listHtml = items.map(({ name, count }) => {
+    const isActive = name.toLowerCase() === (clickedWord || '').toLowerCase();
+    return `
+      <li class="flex items-center justify-between py-2 px-3 rounded-lg ${isActive ? 'bg-indigo-50' : ''}">
+        <span class="font-medium ${isActive ? 'text-indigo-700' : 'text-gray-800'}">
+          ${name.charAt(0).toUpperCase() + name.slice(1)}
+        </span>
+        <span class="inline-flex items-center justify-center text-sm font-semibold rounded-full ${isActive ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'} min-w-[2.5rem] h-7 px-3">
+          ${count}
+        </span>
+      </li>
+    `;
+  }).join('');
+
+  // Monta o conteúdo do modal (mantendo o visual do seu layout)
+  box.innerHTML = `
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-bold text-indigo-600">Contagem de Votos</h3>
+      <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
+        <i class="ph-bold ph-x text-2xl"></i>
+      </button>
+    </div>
+
+    <div class="space-y-3">
+      ${clickedWord ? `
+        <div class="bg-indigo-100 text-indigo-800 rounded-lg px-4 py-2 flex items-center gap-2">
+          <i class="ph ph-hand-pointing text-xl"></i>
+          <span class="font-semibold">Selecionado:</span>
+          <span class="font-semibold">
+            ${clickedWord.charAt(0).toUpperCase() + clickedWord.slice(1)} (${clickedCount})
+          </span>
+        </div>
+      ` : ''}
+
+      <div class="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
+        <ul class="divide-y divide-gray-100">
+          ${listHtml}
+        </ul>
+      </div>
+    </div>
+  `;
+
+  // Reanexa o fechar
+  document.getElementById('close-modal-btn').onclick = () => {
+    modal.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+  };
+
+  // Abre o modal
+  modal.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+}
+
 
     function renderPlayerView() {
       if (localTimerInterval) clearInterval(localTimerInterval);
@@ -543,7 +609,7 @@
             <div id="timer-container" class="mb-4 text-center"></div>
             <div class="bg-gray-50 p-4 sm:p-6 rounded-lg mb-6 shadow-inner">
               <div class="flex items-center justify-between gap-3">
-                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">${QUESTIONS[currentQuestionIndex]}</h2>
+                <h2 class="text-xl sm:text-2xl font-semibold text-center text-gray-800">${QUESTIONS[currentQuestionIndex]}</h2>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-700">Pergunta ${currentQuestionIndex + 1} / ${QUESTIONS.length}</span>
               </div>
             </div>
