@@ -14,20 +14,12 @@
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f3f4f6;
-    }
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
     @keyframes pulse-live { 0%,100%{opacity:1;} 50%{opacity:.5;} }
     .animate-pulse-live { animation: pulse-live 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     @keyframes spin-slow { to { transform: rotate(360deg); } }
     .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-    #word-cloud-container {
-      display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
-      gap:12px 16px; padding:1.5rem; min-height:40vh; border-radius:.75rem; background:#fff;
-      box-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      overflow-y:auto; transition:all .3s ease-in-out;
-    }
+    #word-cloud-container { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px 16px; padding:1.5rem; min-height:40vh; border-radius:.75rem; background:#fff; box-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); overflow-y:auto; transition:all .3s ease-in-out; }
     .word-cloud-item { cursor:pointer; transition:transform .2s, text-shadow .2s; font-weight:600; padding:4px 8px; border-radius:6px; }
     .word-cloud-item:hover { transform:scale(1.1); text-shadow:0 2px 10px rgba(0,0,0,.2); z-index:10; }
     #word-count-modal { transition: opacity .2s, transform .2s; }
@@ -87,7 +79,7 @@
       "Quem mais fotografa os eventos da casa?",
     ];
 
-    const VOTE_DURATION_SECONDS = 30; // <-- 30 segundos
+    const VOTE_DURATION_SECONDS = 30; // 30 segundos
     const GAME_ID = "seplag-game-2025";
 
     let db, auth, userId;
@@ -162,6 +154,7 @@
       }
     }
 
+    // --- LOGIN ADMIN ---
     function renderRoleSelection() {
       appContainer.innerHTML = `
         <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl text-center">
@@ -200,9 +193,7 @@
       input.value = ''; errorMsg.classList.add('hidden'); errorMsg.innerText = 'Código incorreto.'; adminLoginAttempts = 0;
       modal.classList.remove('opacity-0','scale-95','pointer-events-none'); input.focus();
     }
-    function hideAdminLoginModal() {
-      document.getElementById('admin-login-modal').classList.add('opacity-0','scale-95','pointer-events-none');
-    }
+    function hideAdminLoginModal() { document.getElementById('admin-login-modal').classList.add('opacity-0','scale-95','pointer-events-none'); }
     function checkAdminCode() {
       const input = document.getElementById('admin-code-input');
       const errorMsg = document.getElementById('admin-login-error');
@@ -215,6 +206,7 @@
       }
     }
 
+    // --- INÍCIO APP ---
     function startAppAs(role) {
       userRole = role;
       listenToGameState();
@@ -274,40 +266,40 @@
     }
 
     // REINICIAR: limpa respostas e volta pra Pergunta 1 com votação aberta
-async function resetGame() {
-  // limpa timers e listeners locais
-  if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
-  if (localTimerInterval) { clearInterval(localTimerInterval); }
-  if (unsubscribeResponses) unsubscribeResponses();
+    async function resetGame() {
+      if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
+      if (localTimerInterval) { clearInterval(localTimerInterval); }
+      if (unsubscribeResponses) unsubscribeResponses();
 
-  try {
-    // 1) Apaga TODAS as respostas
-    const snapshot = await getDocs(query(responsesRef));
-    if (!snapshot.empty) {
-      const batch = writeBatch(db);
-      snapshot.forEach((d) => batch.delete(d.ref));
-      await batch.commit();
+      try {
+        // limpa respostas
+        const snapshot = await getDocs(query(responsesRef));
+        if (!snapshot.empty) {
+          const batch = writeBatch(db);
+          snapshot.forEach((d) => batch.delete(d.ref));
+          await batch.commit();
+        }
+
+        // seta para a primeira pergunta com votação aberta
+        await setDoc(
+          gameStateRef,
+          { currentQuestionIndex: 0, isVotingOpen: true, timerStartTime: serverTimestamp() },
+          { merge: true }
+        );
+
+        // Atualiza a UI imediatamente (antes do snapshot chegar)
+        currentGameState = {
+          currentQuestionIndex: 0,
+          isVotingOpen: true,
+          timerStartTime: { toMillis: () => Date.now() }
+        };
+        renderAdminView();
+        listenToResponses();
+
+      } catch (e) {
+        console.error('resetGame', e);
+      }
     }
-
-    // 2) Recomeça do zero já na Pergunta 1 (índice 0) com votação aberta e timer novo
-    await setDoc(
-      gameStateRef,
-      {
-        currentQuestionIndex: 0,
-        isVotingOpen: true,
-        timerStartTime: serverTimestamp()
-      },
-      { merge: true }
-    );
-
-    // 3) Volta a escutar a coleção de respostas para a nova pergunta
-    listenToResponses();
-
-  } catch (e) {
-    console.error('resetGame', e);
-  }
-}
-
 
     async function submitResponse() {
       const input = document.getElementById('response-input');
@@ -346,8 +338,16 @@ async function resetGame() {
 
       let questionText = 'O jogo ainda não começou.';
       let buttonText = 'Iniciar Jogo (Pergunta 1)';
-      if (isGameFinished) { questionText = 'Fim de Jogo! Obrigado por participar.'; buttonText = 'Reiniciar Jogo'; }
-      else if (isGameStarted) { questionText = QUESTIONS[currentQuestionIndex]; buttonText = `Próxima Pergunta (${currentQuestionIndex + 2}/${QUESTIONS.length})`; }
+      let currentBadge = '';
+
+      if (isGameFinished) {
+        questionText = 'Fim de Jogo! Obrigado por participar.';
+        buttonText = 'Reiniciar Jogo';
+      } else if (isGameStarted) {
+        questionText = QUESTIONS[currentQuestionIndex];
+        currentBadge = `<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-700">Pergunta ${currentQuestionIndex + 1} / ${QUESTIONS.length}</span>`;
+        buttonText = `Ir para Pergunta ${currentQuestionIndex + 2} (${QUESTIONS.length})`;
+      }
 
       appContainer.innerHTML = `
         <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full">
@@ -360,7 +360,10 @@ async function resetGame() {
           </div>
 
           <div class="bg-gray-50 p-6 rounded-lg mb-6 shadow-inner">
-            <h2 class="text-2xl font-semibold text-center text-gray-800">${questionText}</h2>
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-2xl font-semibold text-gray-800">${questionText}</h2>
+              ${currentBadge}
+            </div>
           </div>
 
           <div class="mb-6">
@@ -373,9 +376,8 @@ async function resetGame() {
               <i class="ph-bold ph-arrow-right mr-2"></i>${buttonText}
             </button>
             <button id="reset-btn" class="flex-1 bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-md hover:bg-red-700 transition">
-  <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo
-</button>
-
+              <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo
+            </button>
           </div>
         </div>`;
 
@@ -383,38 +385,36 @@ async function resetGame() {
       if (isGameFinished) nextBtn.onclick = resetGame; else nextBtn.onclick = nextQuestion;
 
       const resetBtn = document.getElementById('reset-btn');
-let resetConfirmationTimeout = null;
-
-resetBtn.onclick = () => {
-  if (!resetBtn.dataset.pending) {
-    resetBtn.dataset.pending = 'true';
-    resetBtn.classList.remove('bg-red-600','hover:bg-red-700');
-    resetBtn.classList.add('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
-    resetBtn.innerHTML = `<i class="ph-bold ph-warning-circle mr-2"></i>Confirmar Reinício? (clique de novo)`;
-    resetConfirmationTimeout = setTimeout(() => {
-      if (resetBtn.dataset.pending === 'true') {
-        resetBtn.dataset.pending = '';
-        resetBtn.classList.add('bg-red-600','hover:bg-red-700');
-        resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
-        resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo`;
-      }
-    }, 5000);
-  } else {
-    clearTimeout(resetConfirmationTimeout);
-    resetBtn.dataset.pending = '';
-    resetBtn.classList.add('bg-red-600','hover:bg-red-700');
-    resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
-    resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciando...`;
-    resetGame(); // <<--- importante
-  }
-};
-
+      let resetConfirmationTimeout = null;
+      resetBtn.onclick = () => {
+        if (!resetBtn.dataset.pending) {
+          resetBtn.dataset.pending = 'true';
+          resetBtn.classList.remove('bg-red-600','hover:bg-red-700');
+          resetBtn.classList.add('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+          resetBtn.innerHTML = `<i class="ph-bold ph-warning-circle mr-2"></i>Confirmar Reinício? (clique de novo)`;
+          resetConfirmationTimeout = setTimeout(() => {
+            if (resetBtn.dataset.pending === 'true') {
+              resetBtn.dataset.pending = '';
+              resetBtn.classList.add('bg-red-600','hover:bg-red-700');
+              resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+              resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo`;
+            }
+          }, 5000);
+        } else {
+          clearTimeout(resetConfirmationTimeout);
+          resetBtn.dataset.pending = '';
+          resetBtn.classList.add('bg-red-600','hover:bg-red-700');
+          resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+          resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciando...`;
+          resetGame();
+        }
+      };
 
       updateAdminTimer(isVotingOpen, timerStartTime);
       setupModal();
     }
 
-    // === TIMER DO ADMIN — com tick por segundo ===
+    // TIMER DO ADMIN
     function updateAdminTimer(isVotingOpen, timerStartTime) {
       const container = document.getElementById('admin-status-container');
       if (!container) return;
@@ -453,8 +453,8 @@ resetBtn.onclick = () => {
           }
         };
 
-        tick(); // atualiza imediatamente
-        localTimerInterval = setInterval(tick, 1000); // e a cada segundo
+        tick();
+        localTimerInterval = setInterval(tick, 1000);
       } else if (currentGameState && currentGameState.currentQuestionIndex > -1) {
         container.innerHTML = `
           <div class="flex items-center gap-3 bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-lg">
@@ -470,6 +470,7 @@ resetBtn.onclick = () => {
       }
     }
 
+    // Nuvem de palavras
     function updateWordCloud(words) {
       const container = document.getElementById('word-cloud-container');
       if (!container) return;
@@ -541,7 +542,10 @@ resetBtn.onclick = () => {
           contentHtml = `
             <div id="timer-container" class="mb-4 text-center"></div>
             <div class="bg-gray-50 p-4 sm:p-6 rounded-lg mb-6 shadow-inner">
-              <h2 class="text-xl sm:text-2xl font-semibold text-center text-gray-800">${QUESTIONS[currentQuestionIndex]}</h2>
+              <div class="flex items-center justify-between gap-3">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">${QUESTIONS[currentQuestionIndex]}</h2>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-700">Pergunta ${currentQuestionIndex + 1} / ${QUESTIONS.length}</span>
+              </div>
             </div>
             <div class="flex flex-col gap-4">
               <input type="text" id="response-input" class="w-full text-lg p-3 sm:p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500" placeholder="Digite um nome..." />
@@ -571,7 +575,7 @@ resetBtn.onclick = () => {
       }
     }
 
-    // === TIMER DO JOGADOR — com tick por segundo ===
+    // TIMER DO JOGADOR
     function startPlayerTimer(startTimeMs) {
       const container = document.getElementById('timer-container');
       if (!container) return;
@@ -604,10 +608,11 @@ resetBtn.onclick = () => {
         }
       };
 
-      render(); // já atualiza
-      localTimerInterval = setInterval(render, 1000); // e segue de 1 em 1s
+      render();
+      localTimerInterval = setInterval(render, 1000);
     }
 
+    // start
     initializeFirebase();
   </script>
 </body>
