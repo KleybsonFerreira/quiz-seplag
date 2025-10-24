@@ -588,58 +588,62 @@
     }
 
     function updateAdminTimer(isVotingOpen, timerStartTime) {
-      const container = document.getElementById('admin-status-container');
-      if (!container) return;
-      if (localTimerInterval) clearInterval(localTimerInterval);
+  const container = document.getElementById('admin-status-container');
+  if (!container) return;
+  if (localTimerInterval) clearInterval(localTimerInterval);
 
-      if (isVotingOpen && timerStartTime) {
-        const startTimeMs = timerStartTime.toMillis();
-        if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
+  if (isVotingOpen && timerStartTime) {
+    const startTimeMs = timerStartTime.toMillis();
+    // Se o servidor disser que começou no futuro, começamos agora
+    const effectiveStartMs = Math.min(startTimeMs, Date.now());
 
-        const checkTime = () => {
-          const nowMs = Date.now();
-          let elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
-if (elapsedSeconds < 0) elapsedSeconds = 0;
-          let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
-if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
-if (remainingSeconds < 0) remainingSeconds = 0;
+    const tick = () => {
+      const nowMs = Date.now();
 
-          if (remainingSeconds > 0) {
-            container.innerHTML = `
-              <div class="flex items-center gap-3 bg-red-100 text-red-700 font-bold py-3 px-5 rounded-lg">
-                <i class="ph-bold ph-timer text-3xl animate-pulse-live"></i>
-                <div>
-                  <span class="text-lg">VOTAÇÃO ABERTA</span>
-                  <span class="block text-2xl">${remainingSeconds}s</span>
-                </div>
-              </div>`;
-          } else {
-            container.innerHTML = `
-              <div class="flex items-center gap-3 bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-lg">
-                <i class="ph-bold ph-check-circle text-3xl"></i>
-                <span class="text-lg">VOTAÇÃO ENCERRADA</span>
-              </div>`;
-            clearInterval(localTimerInterval);
-            if (currentGameState.isVotingOpen) closeVoting();
-          }
-        };
+      let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
+      if (elapsedSeconds < 0) elapsedSeconds = 0;
 
-        checkTime();
-        localTimerInterval = setInterval(checkTime, 1000);
-      } else if (currentGameState && currentGameState.currentQuestionIndex > -1) {
+      let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+      if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+      if (remainingSeconds < 0) remainingSeconds = 0;
+
+      if (remainingSeconds > 0) {
+        container.innerHTML = `
+          <div class="flex items-center gap-3 bg-red-100 text-red-700 font-bold py-3 px-5 rounded-lg">
+            <i class="ph-bold ph-timer text-3xl animate-pulse-live"></i>
+            <div>
+              <span class="text-lg">VOTAÇÃO ABERTA</span>
+              <span class="block text-2xl">${remainingSeconds}s</span>
+            </div>
+          </div>`;
+      } else {
         container.innerHTML = `
           <div class="flex items-center gap-3 bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-lg">
             <i class="ph-bold ph-check-circle text-3xl"></i>
             <span class="text-lg">VOTAÇÃO ENCERRADA</span>
           </div>`;
-      } else {
-        container.innerHTML = `
-          <div class="flex items-center gap-3 bg-blue-100 text-blue-700 font-bold py-3 px-5 rounded-lg">
-            <i class="ph-bold ph-hourglass text-3xl"></i>
-            <span class="text-lg">AGUARDANDO INÍCIO</span>
-          </div>`;
+        clearInterval(localTimerInterval);
+        if (currentGameState.isVotingOpen) closeVoting();
       }
-    }
+    };
+
+    tick(); // atualiza já
+    localTimerInterval = setInterval(tick, 1000);
+  } else if (currentGameState && currentGameState.currentQuestionIndex > -1) {
+    container.innerHTML = `
+      <div class="flex items-center gap-3 bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-lg">
+        <i class="ph-bold ph-check-circle text-3xl"></i>
+        <span class="text-lg">VOTAÇÃO ENCERRADA</span>
+      </div>`;
+  } else {
+    container.innerHTML = `
+      <div class="flex items-center gap-3 bg-blue-100 text-blue-700 font-bold py-3 px-5 rounded-lg">
+        <i class="ph-bold ph-hourglass text-3xl"></i>
+        <span class="text-lg">AGUARDANDO INÍCIO</span>
+      </div>`;
+  }
+}
+
 
     function updateWordCloud(words) {
       const container = document.getElementById('word-cloud-container');
@@ -755,37 +759,43 @@ if (remainingSeconds < 0) remainingSeconds = 0;
     }
 
     function startPlayerTimer(startTimeMs) {
-      const container = document.getElementById('timer-container');
-      if (!container) return;
-      if (localTimerInterval) clearInterval(localTimerInterval);
+  const container = document.getElementById('timer-container');
+  if (!container) return;
+  if (localTimerInterval) clearInterval(localTimerInterval);
 
-      localTimerInterval = setInterval(() => {
-        const nowMs = Date.now();
-        let elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
-if (elapsedSeconds < 0) elapsedSeconds = 0;
-        let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
-if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
-if (remainingSeconds < 0) remainingSeconds = 0;
+  // Se o “início” vier do futuro, considera o momento atual para não travar
+  const effectiveStartMs = Math.min(startTimeMs, Date.now());
 
-        if (remainingSeconds > 0) {
-          container.innerHTML = `
-            <p class="text-4xl sm:text-5xl font-bold text-red-600">${remainingSeconds}s</p>
-            <p class="text-base sm:text-lg text-gray-600">Tempo restante para votar</p>`;
-        } else {
-          container.innerHTML = `
-            <p class="text-4xl sm:text-5xl font-bold text-gray-500">0s</p>
-            <p class="text-base sm:text-lg text-gray-600">Tempo Esgotado!</p>`;
-          clearInterval(localTimerInterval);
-          const input = document.getElementById('response-input');
-          const btn = document.getElementById('submit-btn');
-          if (input) input.disabled = true;
-          if (btn) btn.disabled = true;
-        }
-      }, 1000);
+  const render = () => {
+    const nowMs = Date.now();
+
+    let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
+    if (elapsedSeconds < 0) elapsedSeconds = 0;
+
+    let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+    if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+    if (remainingSeconds < 0) remainingSeconds = 0;
+
+    if (remainingSeconds > 0) {
+      container.innerHTML = `
+        <p class="text-4xl sm:text-5xl font-bold text-red-600">${remainingSeconds}s</p>
+        <p class="text-base sm:text-lg text-gray-600">Tempo restante para votar</p>`;
+    } else {
+      container.innerHTML = `
+        <p class="text-4xl sm:text-5xl font-bold text-gray-500">0s</p>
+        <p class="text-base sm:text-lg text-gray-600">Tempo Esgotado!</p>`;
+      clearInterval(localTimerInterval);
+      const input = document.getElementById('response-input');
+      const btn = document.getElementById('submit-btn');
+      if (input) input.disabled = true;
+      if (btn) btn.disabled = true;
     }
+  };
 
-    // Iniciar app
-    initializeFirebase();
+  render(); // atualiza já
+  localTimerInterval = setInterval(render, 1000);
+}
+
   </script>
 </body>
 </html>
