@@ -598,8 +598,11 @@
 
         const checkTime = () => {
           const nowMs = Date.now();
-          const elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
-          const remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+          let elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
+if (elapsedSeconds < 0) elapsedSeconds = 0;
+          let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+if (remainingSeconds < 0) remainingSeconds = 0;
 
           if (remainingSeconds > 0) {
             container.innerHTML = `
@@ -758,8 +761,11 @@
 
       localTimerInterval = setInterval(() => {
         const nowMs = Date.now();
-        const elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
-        const remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+        let elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
+if (elapsedSeconds < 0) elapsedSeconds = 0;
+        let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+if (remainingSeconds < 0) remainingSeconds = 0;
 
         if (remainingSeconds > 0) {
           container.innerHTML = `
