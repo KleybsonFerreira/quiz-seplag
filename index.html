@@ -187,7 +187,7 @@
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'COLE_SUA_API_KEY_AQUI') {
+        if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'COLE_SUA API_KEY_AQUI') {
           appContainer.innerHTML = `
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
               <p class="font-bold">Erro de Configuração</p>
@@ -570,7 +570,7 @@
               resetBtn.dataset.pending = '';
               resetBtn.classList.add('bg-red-600', 'hover:bg-red-700');
               resetBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'text-black', 'font-semibold');
-              resetBtn.innerHTML = `<i class=\"ph-bold ph-arrow-counter-clockwise mr-2\"></i>Zerar Respostas`;
+              resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Zerar Respostas`;
             }
           }, 5000);
         } else {
@@ -578,7 +578,7 @@
           resetBtn.dataset.pending = '';
           resetBtn.classList.add('bg-red-600', 'hover:bg-red-700');
           resetBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'text-black', 'font-semibold');
-          resetBtn.innerHTML = `<i class=\"ph-bold ph-arrow-counter-clockwise mr-2\"></i>Zerando...`;
+          resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Zerando...`;
           resetGame();
         }
       };
@@ -594,15 +594,18 @@
 
       if (isVotingOpen && timerStartTime) {
         const startTimeMs = timerStartTime.toMillis();
-        if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
+        // Se o servidor disser que começou no futuro, começamos agora para não travar no 90
+        const effectiveStartMs = Math.min(startTimeMs, Date.now());
 
         const checkTime = () => {
           const nowMs = Date.now();
-          let elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
-if (elapsedSeconds < 0) elapsedSeconds = 0;
+
+          let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
+          if (elapsedSeconds < 0) elapsedSeconds = 0;
+
           let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
-if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
-if (remainingSeconds < 0) remainingSeconds = 0;
+          if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+          if (remainingSeconds < 0) remainingSeconds = 0;
 
           if (remainingSeconds > 0) {
             container.innerHTML = `
@@ -759,13 +762,18 @@ if (remainingSeconds < 0) remainingSeconds = 0;
       if (!container) return;
       if (localTimerInterval) clearInterval(localTimerInterval);
 
+      // Se o “início” vier do futuro, considera o momento atual para a contagem não travar
+      const effectiveStartMs = Math.min(startTimeMs, Date.now());
+
       localTimerInterval = setInterval(() => {
         const nowMs = Date.now();
-        let elapsedSeconds = Math.floor((nowMs - startTimeMs) / 1000);
-if (elapsedSeconds < 0) elapsedSeconds = 0;
+
+        let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
+        if (elapsedSeconds < 0) elapsedSeconds = 0;
+
         let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
-if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
-if (remainingSeconds < 0) remainingSeconds = 0;
+        if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+        if (remainingSeconds < 0) remainingSeconds = 0;
 
         if (remainingSeconds > 0) {
           container.innerHTML = `
