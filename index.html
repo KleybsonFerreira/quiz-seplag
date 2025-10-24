@@ -14,121 +14,67 @@
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
   <style>
-    /* Estilo base com a fonte Inter */
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f3f4f6; /* Fundo cinza claro */
+      background-color: #f3f4f6;
     }
-
-    /* Animação de pulso para o status "Ao Vivo" */
-    @keyframes pulse-live {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .animate-pulse-live {
-      animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    /* Girar devagar (usado na ampulheta do jogador) */
+    @keyframes pulse-live { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+    .animate-pulse-live { animation: pulse-live 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     @keyframes spin-slow { to { transform: rotate(360deg); } }
     .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-
-    /* Estilo para a nuvem de palavras */
     #word-cloud-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      gap: 12px 16px;
-      padding: 1.5rem;
-      min-height: 40vh; /* Garante altura mínima */
-      border-radius: 0.75rem;
-      background-color: white;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      overflow-y: auto;
-      transition: all 0.3s ease-in-out;
+      display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+      gap:12px 16px; padding:1.5rem; min-height:40vh; border-radius:.75rem; background:#fff;
+      box-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      overflow-y:auto; transition:all .3s ease-in-out;
     }
-
-    /* Estilo para cada palavra na nuvem */
-    .word-cloud-item {
-      cursor: pointer;
-      transition: transform 0.2s ease, text-shadow 0.2s ease;
-      font-weight: 600;
-      padding: 4px 8px;
-      border-radius: 6px;
-    }
-    .word-cloud-item:hover {
-      transform: scale(1.1);
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      z-index: 10;
-    }
-
-    /* Modal de contagem */
-    #word-count-modal {
-      transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
-    }
+    .word-cloud-item { cursor:pointer; transition:transform .2s, text-shadow .2s; font-weight:600; padding:4px 8px; border-radius:6px; }
+    .word-cloud-item:hover { transform:scale(1.1); text-shadow:0 2px 10px rgba(0,0,0,.2); z-index:10; }
+    #word-count-modal { transition: opacity .2s, transform .2s; }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-900 flex items-center justify-center min-h-screen p-4">
-  <!-- Contêiner principal da aplicação -->
   <div id="app" class="w-full max-w-4xl mx-auto"></div>
 
-  <!-- Modal para contagem de palavras (Admin) -->
-  <div id="word-count-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 opacity-0 scale-95 pointer-events-none z-50">
+  <!-- Modal contagem -->
+  <div id="word-count-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 opacity-0 scale-95 pointer-events-none z-50">
     <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-xl font-bold text-indigo-600">Contagem de Votos</h3>
-        <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
-          <i class="ph-bold ph-x text-2xl"></i>
-        </button>
+        <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600"><i class="ph-bold ph-x text-2xl"></i></button>
       </div>
       <div>
-        <p class="text-lg">Palavra: <strong id="modal-word" class="font-bold"></strong></p>
-        <p class="text-lg">Votos: <strong id="modal-count" class="font-bold text-indigo-600"></strong></p>
+        <p class="text-lg">Palavra: <strong id="modal-word"></strong></p>
+        <p class="text-lg">Votos: <strong id="modal-count" class="text-indigo-600"></strong></p>
       </div>
     </div>
   </div>
 
-  <!-- Modal de Login do Admin -->
-  <div id="admin-login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 opacity-0 scale-95 pointer-events-none z-50">
+  <!-- Modal login admin -->
+  <div id="admin-login-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 opacity-0 scale-95 pointer-events-none z-50">
     <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-xl font-bold text-indigo-600">Acesso Restrito</h3>
-        <button id="close-login-modal-btn" class="text-gray-400 hover:text-gray-600">
-          <i class="ph-bold ph-x text-2xl"></i>
-        </button>
+        <button id="close-login-modal-btn" class="text-gray-400 hover:text-gray-600"><i class="ph-bold ph-x text-2xl"></i></button>
       </div>
       <p class="text-gray-600 mb-4">Por favor, insira o código de administrador para continuar.</p>
       <div class="flex flex-col gap-4">
         <input type="password" id="admin-code-input" class="w-full text-lg p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500" placeholder="Código de acesso..." />
         <p id="admin-login-error" class="text-red-500 text-sm hidden">Código incorreto.</p>
-        <button id="submit-admin-code-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-5 text-lg rounded-lg shadow-lg hover:bg-indigo-700 transition duration-300">Confirmar</button>
+        <button id="submit-admin-code-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-5 text-lg rounded-lg shadow-lg hover:bg-indigo-700 transition">Confirmar</button>
       </div>
     </div>
   </div>
 
-  <!-- Firebase SDK -->
   <script type="module">
-    // Importações do Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import {
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc,
-      addDoc,
-      onSnapshot,
-      collection,
-      serverTimestamp,
-      query,
-      where,
-      getDocs,
-      writeBatch,
-      setLogLevel,
+      getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection,
+      serverTimestamp, query, where, getDocs, writeBatch, setLogLevel,
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- CONFIGURAÇÃO ---
+    // --- CONFIG ---
     const QUESTIONS = [
       "Quem cozinha ou leva as melhores marmitas?",
       "Quem é a rainha, ou rei do cafezinho?",
@@ -141,34 +87,28 @@
       "Quem mais fotografa os eventos da casa?",
     ];
 
-    const VOTE_DURATION_SECONDS = 30; // 90 segundos
-    const GAME_ID = "seplag-game-2025"; // ID único para esta sessão de jogo
+    const VOTE_DURATION_SECONDS = 30; // <-- 30 segundos
+    const GAME_ID = "seplag-game-2025";
 
-    // Estado global
     let db, auth, userId;
     const appContainer = document.getElementById('app');
-    let userRole = null; // 'admin' | 'player'
+    let userRole = null;
     let currentGameState = null;
 
-    let localTimerInterval = null; // timer do jogador/admin na UI
-    let adminTimerTimeout = null; // (não usado mais para fechar; mantido por segurança)
+    let localTimerInterval = null;
+    let adminTimerTimeout = null;
     let adminLoginAttempts = 0;
 
-    // Refs do Firestore
     let gameStateRef;
     let responsesRef;
 
-    // Paleta de cores
-    const WORD_COLORS = ['#4f46e5', '#db2777', '#16a34a', '#ca8a04', '#0891b2', '#be185d', '#059669', '#d97706', '#6d28d9', '#4338ca'];
+    const WORD_COLORS = ['#4f46e5','#db2777','#16a34a','#ca8a04','#0891b2','#be185d','#059669','#d97706','#6d28d9','#4338ca'];
 
-    // --- INICIALIZAÇÃO DO FIREBASE ---
     async function initializeFirebase() {
       try {
         setLogLevel('debug');
 
-        // Detecta ambiente Canvas (variáveis injetadas)
         const isCanvasEnvironment = typeof __firebase_config !== 'undefined' && __firebase_config !== '{}';
-
         let firebaseConfig;
         if (isCanvasEnvironment) {
           firebaseConfig = JSON.parse(__firebase_config);
@@ -182,66 +122,37 @@
             appId: "1:710059498975:web:dd0f797c07acad2a8ef86a",
             measurementId: "G-M7EBJTR90H",
           };
-          console.log("Usando configuração manual do Firebase.");
         }
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'COLE_SUA_API_KEY_AQUI') {
-          appContainer.innerHTML = `
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
-              <p class="font-bold">Erro de Configuração</p>
-              <p>Por favor, insira sua chave de configuração do Firebase no arquivo HTML para que o jogo possa funcionar.</p>
-            </div>`;
-          return;
-        }
-
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
 
-        // Autenticação
         await new Promise((resolve, reject) => {
-          const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            unsubscribe();
-            if (user) {
-              userId = user.uid;
-              console.log("Usuário já autenticado:", userId);
-              resolve(user);
-            } else if (isCanvasEnvironment && typeof __initial_auth_token !== 'undefined') {
-              try {
+          const unsub = onAuthStateChanged(auth, async (user) => {
+            unsub();
+            try {
+              if (user) {
+                userId = user.uid; resolve(user);
+              } else if (isCanvasEnvironment && typeof __initial_auth_token !== 'undefined') {
                 const cred = await signInWithCustomToken(auth, __initial_auth_token);
-                userId = cred.user.uid;
-                console.log("Usuário autenticado com Custom Token:", userId);
-                resolve(cred.user);
-              } catch (err) {
-                console.error("Erro ao autenticar com Custom Token:", err);
-                reject(err);
-              }
-            } else {
-              try {
+                userId = cred.user.uid; resolve(cred.user);
+              } else {
                 const cred = await signInAnonymously(auth);
-                userId = cred.user.uid;
-                console.log("Usuário autenticado anonimamente:", userId);
-                resolve(cred.user);
-              } catch (err) {
-                console.error("Erro ao autenticar anonimamente:", err);
-                reject(err);
+                userId = cred.user.uid; resolve(cred.user);
               }
-            }
+            } catch (e) { reject(e); }
           });
         });
 
-        // Paths (coleções públicas para todos lerem/escreverem)
         const gameCollectionPath = `artifacts/${appId}/public/data/word-cloud-games`;
         gameStateRef = doc(db, gameCollectionPath, GAME_ID);
         responsesRef = collection(db, gameCollectionPath, GAME_ID, 'responses');
 
-        console.log("Firestore Refs:", { gameStatePath: gameStateRef.path, responsesPath: responsesRef.path });
-
         renderRoleSelection();
       } catch (error) {
-        console.error("Erro fatal na inicialização:", error);
+        console.error("Erro fatal:", error);
         appContainer.innerHTML = `
           <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
             <p class="font-bold">Erro de Conexão</p>
@@ -251,31 +162,26 @@
       }
     }
 
-    // --- SELEÇÃO DE PERFIL ---
     function renderRoleSelection() {
       appContainer.innerHTML = `
-        <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl text-center transition-all duration-300">
+        <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl text-center">
           <i class="ph-bold ph-users-three text-6xl text-indigo-600 mb-6"></i>
           <h1 class="text-3xl md:text-4xl font-bold mb-4 text-gray-800">Bem-vindo(a) ao Jogo!</h1>
           <p class="text-lg text-gray-600 mb-10">Por favor, escolha seu perfil para participar:</p>
           <div class="flex flex-col md:flex-row gap-6">
-            <button id="admin-btn" class="flex-1 bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg text-xl shadow-lg hover:bg-indigo-700 transition-transform transform hover:-translate-y-1 duration-300 ease-out flex items-center justify-center gap-3">
-              <i class="ph-bold ph-crown text-2xl"></i>
-              Administrador
+            <button id="admin-btn" class="flex-1 bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg text-xl shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-3">
+              <i class="ph-bold ph-crown text-2xl"></i>Administrador
             </button>
-            <button id="player-btn" class="flex-1 bg-teal-500 text-white font-bold py-4 px-6 rounded-lg text-xl shadow-lg hover:bg-teal-600 transition-transform transform hover:-translate-y-1 duration-300 ease-out flex items-center justify-center gap-3">
-              <i class="ph-bold ph-user text-2xl"></i>
-              Jogador
+            <button id="player-btn" class="flex-1 bg-teal-500 text-white font-bold py-4 px-6 rounded-lg text-xl shadow-lg hover:bg-teal-600 transition flex items-center justify-center gap-3">
+              <i class="ph-bold ph-user text-2xl"></i>Jogador
             </button>
           </div>
         </div>`;
-
       document.getElementById('admin-btn').addEventListener('click', showAdminLoginModal);
       document.getElementById('player-btn').addEventListener('click', () => startAppAs('player'));
       setupAdminLoginModal();
     }
 
-    // --- LOGIN DO ADMIN ---
     function setupAdminLoginModal() {
       const modal = document.getElementById('admin-login-modal');
       const closeBtn = document.getElementById('close-login-modal-btn');
@@ -284,217 +190,123 @@
 
       closeBtn.onclick = hideAdminLoginModal;
       submitBtn.onclick = checkAdminCode;
-
       modal.onclick = (e) => { if (e.target === modal) hideAdminLoginModal(); };
       input.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAdminCode(); });
     }
-
     function showAdminLoginModal() {
       const modal = document.getElementById('admin-login-modal');
       const input = document.getElementById('admin-code-input');
       const errorMsg = document.getElementById('admin-login-error');
-
-      input.value = '';
-      errorMsg.classList.add('hidden');
-      errorMsg.innerText = 'Código incorreto.';
-      adminLoginAttempts = 0;
-
-      modal.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
-      input.focus();
+      input.value = ''; errorMsg.classList.add('hidden'); errorMsg.innerText = 'Código incorreto.'; adminLoginAttempts = 0;
+      modal.classList.remove('opacity-0','scale-95','pointer-events-none'); input.focus();
     }
-
     function hideAdminLoginModal() {
-      const modal = document.getElementById('admin-login-modal');
-      modal.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+      document.getElementById('admin-login-modal').classList.add('opacity-0','scale-95','pointer-events-none');
     }
-
     function checkAdminCode() {
       const input = document.getElementById('admin-code-input');
       const errorMsg = document.getElementById('admin-login-error');
       const correctCode = 'seplag2025';
-
-      if (input.value === correctCode) {
-        adminLoginAttempts = 0;
-        hideAdminLoginModal();
-        startAppAs('admin');
-      } else {
+      if (input.value === correctCode) { adminLoginAttempts = 0; hideAdminLoginModal(); startAppAs('admin'); }
+      else {
         adminLoginAttempts++;
-        if (adminLoginAttempts >= 3) {
-          hideAdminLoginModal();
-          startAppAs('player');
-          adminLoginAttempts = 0;
-        } else {
-          errorMsg.innerText = `Código incorreto. Tentativa ${adminLoginAttempts} de 3.`;
-          errorMsg.classList.remove('hidden');
-          input.value = '';
-          input.focus();
-        }
+        if (adminLoginAttempts >= 3) { hideAdminLoginModal(); startAppAs('player'); adminLoginAttempts = 0; }
+        else { errorMsg.innerText = `Código incorreto. Tentativa ${adminLoginAttempts} de 3.`; errorMsg.classList.remove('hidden'); input.value=''; input.focus(); }
       }
     }
 
-    // --- INÍCIO DA APP ---
     function startAppAs(role) {
       userRole = role;
-      console.log(`Iniciando como: ${role}`);
       listenToGameState();
-
-      if (userRole === 'admin') {
-        initializeGameState();
-        renderAdminView();
-        listenToResponses();
-      } else {
-        renderPlayerView();
-      }
+      if (userRole === 'admin') { initializeGameState(); renderAdminView(); listenToResponses(); }
+      else { renderPlayerView(); }
     }
 
-    // --- LÓGICA DO JOGO (FIRESTORE) ---
     async function initializeGameState() {
       try {
         const snap = await getDoc(gameStateRef);
         if (!snap.exists()) {
-          await setDoc(gameStateRef, {
-            currentQuestionIndex: -1,
-            isVotingOpen: false,
-            timerStartTime: null,
-          });
+          await setDoc(gameStateRef, { currentQuestionIndex: -1, isVotingOpen: false, timerStartTime: null });
         }
-      } catch (error) {
-        console.error('Erro ao inicializar estado do jogo:', error);
-      }
+      } catch (e) { console.error('init game state', e); }
     }
 
     function listenToGameState() {
       onSnapshot(
         gameStateRef,
         (docSnap) => {
-          if (docSnap.exists()) {
-            currentGameState = docSnap.data();
-            updateUIBasedOnGameState();
-          } else {
-            if (userRole === 'player') {
-              appContainer.innerHTML = `<p class="text-center text-red-500">Aguardando o administrador iniciar o jogo...</p>`;
-            }
-          }
+          if (docSnap.exists()) { currentGameState = docSnap.data(); updateUIBasedOnGameState(); }
+          else if (userRole === 'player') { appContainer.innerHTML = `<p class="text-center text-red-500">Aguardando o administrador iniciar o jogo...</p>`; }
         },
-        (error) => console.error('Erro ao ouvir estado do jogo:', error)
+        (err) => console.error('snapshot state', err)
       );
     }
 
     let unsubscribeResponses = null;
     function listenToResponses() {
       if (unsubscribeResponses) unsubscribeResponses();
-
       if (currentGameState && currentGameState.currentQuestionIndex > -1) {
-        const qRef = query(responsesRef, where('questionIndex', '==', currentGameState.currentQuestionIndex));
-        console.log(`Ouvindo respostas para a pergunta ${currentGameState.currentQuestionIndex}`);
-
-        unsubscribeResponses = onSnapshot(
-          qRef,
-          (querySnapshot) => {
-            const words = [];
-            querySnapshot.forEach((d) => words.push((d.data().word || '').trim().toLowerCase()));
-            updateWordCloud(words);
-          },
-          (error) => console.error('Erro ao ouvir respostas:', error)
-        );
-      } else {
-        updateWordCloud([]);
-      }
+        const qRef = query(responsesRef, where('questionIndex','==', currentGameState.currentQuestionIndex));
+        unsubscribeResponses = onSnapshot(qRef, (q) => {
+          const words = [];
+          q.forEach((d) => words.push((d.data().word || '').trim().toLowerCase()));
+          updateWordCloud(words);
+        }, (e) => console.error('snapshot responses', e));
+      } else { updateWordCloud([]); }
     }
 
     async function nextQuestion() {
-      if (adminTimerTimeout) {
-        clearTimeout(adminTimerTimeout);
-        adminTimerTimeout = null;
-      }
-
+      if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
       const nextIndex = (currentGameState?.currentQuestionIndex ?? -1) + 1;
-      if (nextIndex >= QUESTIONS.length) {
-        alert('Fim de jogo! Obrigado por jogar.');
-        await resetGame();
-        return;
-      }
-
+      if (nextIndex >= QUESTIONS.length) { alert('Fim de jogo! Obrigado por jogar.'); await resetGame(); return; }
       try {
-        await setDoc(
-          gameStateRef,
-          {
-            currentQuestionIndex: nextIndex,
-            isVotingOpen: true,
-            timerStartTime: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      } catch (error) {
-        console.error('Erro ao avançar pergunta:', error);
-      }
+        await setDoc(gameStateRef, {
+          currentQuestionIndex: nextIndex,
+          isVotingOpen: true,
+          timerStartTime: serverTimestamp()
+        }, { merge:true });
+      } catch (e) { console.error('nextQuestion', e); }
     }
 
     async function closeVoting() {
-      try {
-        await setDoc(gameStateRef, { isVotingOpen: false }, { merge: true });
-      } catch (error) {
-        console.error('Erro ao fechar votação:', error);
-      }
+      try { await setDoc(gameStateRef, { isVotingOpen:false }, { merge:true }); }
+      catch (e) { console.error('closeVoting', e); }
     }
 
+    // REINICIAR: limpa respostas e volta pra Pergunta 1 com votação aberta
     async function resetGame() {
-      console.log('Admin zerando o jogo...');
       if (adminTimerTimeout) { clearTimeout(adminTimerTimeout); adminTimerTimeout = null; }
       if (unsubscribeResponses) unsubscribeResponses();
-
       try {
-        // 1) Apaga respostas
-        const qRef = query(responsesRef);
-        const snapshot = await getDocs(qRef);
+        const snapshot = await getDocs(query(responsesRef));
         if (!snapshot.empty) {
           const batch = writeBatch(db);
           snapshot.forEach((d) => batch.delete(d.ref));
           await batch.commit();
-          console.log('Respostas antigas deletadas.');
         }
-
-        // 2) Reseta o estado
         await setDoc(gameStateRef, { currentQuestionIndex: 0, isVotingOpen: true, timerStartTime: serverTimestamp() });
-
-        // 3) Reinicia escuta
         listenToResponses();
-      } catch (error) {
-        console.error('Erro ao zerar o jogo:', error);
-      }
+      } catch (e) { console.error('resetGame', e); }
     }
 
     async function submitResponse() {
       const input = document.getElementById('response-input');
       const word = (input?.value || '').trim();
-
       if (!word) { alert('Por favor, digite um nome.'); return; }
       if (!currentGameState || !currentGameState.isVotingOpen) { alert('A votação está encerrada para esta pergunta.'); return; }
-
       try {
         const btn = document.getElementById('submit-btn');
-        btn.disabled = true;
-        btn.innerText = 'Enviando...';
-
-        await addDoc(responsesRef, {
-          word,
-          questionIndex: currentGameState.currentQuestionIndex,
-          submitterId: userId,
-          timestamp: serverTimestamp(),
-        });
-
-        const playerContent = document.getElementById('player-content');
-        playerContent.innerHTML = `
+        btn.disabled = true; btn.innerText = 'Enviando...';
+        await addDoc(responsesRef, { word, questionIndex: currentGameState.currentQuestionIndex, submitterId: userId, timestamp: serverTimestamp() });
+        document.getElementById('player-content').innerHTML = `
           <div class="text-center p-8">
             <i class="ph-bold ph-check-circle text-6xl text-green-500 mb-4"></i>
             <h2 class="text-3xl font-bold text-gray-800">Voto enviado com sucesso!</h2>
             <p class="text-xl text-gray-600 mt-2">Aguardando a próxima pergunta...</p>
           </div>`;
-      } catch (error) {
-        console.error('Erro ao enviar resposta:', error);
-        const btn = document.getElementById('submit-btn');
-        btn.disabled = false;
-        btn.innerText = 'Enviar';
+      } catch (e) {
+        console.error('submitResponse', e);
+        const btn = document.getElementById('submit-btn'); btn.disabled = false; btn.innerText = 'Enviar';
       }
     }
 
@@ -514,14 +326,8 @@
 
       let questionText = 'O jogo ainda não começou.';
       let buttonText = 'Iniciar Jogo (Pergunta 1)';
-
-      if (isGameFinished) {
-        questionText = 'Fim de Jogo! Obrigado por participar.';
-        buttonText = 'Zerar Jogo';
-      } else if (isGameStarted) {
-        questionText = QUESTIONS[currentQuestionIndex];
-        buttonText = `Próxima Pergunta (${currentQuestionIndex + 2}/${QUESTIONS.length})`;
-      }
+      if (isGameFinished) { questionText = 'Fim de Jogo! Obrigado por participar.'; buttonText = 'Reiniciar Jogo'; }
+      else if (isGameStarted) { questionText = QUESTIONS[currentQuestionIndex]; buttonText = `Próxima Pergunta (${currentQuestionIndex + 2}/${QUESTIONS.length})`; }
 
       appContainer.innerHTML = `
         <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full">
@@ -543,13 +349,11 @@
           </div>
 
           <div class="flex flex-col md:flex-row gap-4">
-            <button id="next-q-btn" class="flex-1 bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-md hover:bg-indigo-700 transition duration-300 ${isVotingOpen ? 'opacity-50 cursor-not-allowed' : ''}" ${isVotingOpen ? 'disabled' : ''}>
-              <i class="ph-bold ph-arrow-right mr-2"></i>
-              ${buttonText}
+            <button id="next-q-btn" class="flex-1 bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-md hover:bg-indigo-700 transition ${isVotingOpen ? 'opacity-50 cursor-not-allowed' : ''}" ${isVotingOpen ? 'disabled' : ''}>
+              <i class="ph-bold ph-arrow-right mr-2"></i>${buttonText}
             </button>
-            <button id="reset-btn" class="flex-1 bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-md hover:bg-red-700 transition duration-300">
-              <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>
-              Reiniciar Jogo
+            <button id="reset-btn" class="flex-1 bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-md hover:bg-red-700 transition">
+              <i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo
             </button>
           </div>
         </div>`;
@@ -562,23 +366,23 @@
       resetBtn.onclick = () => {
         if (!resetBtn.dataset.pending) {
           resetBtn.dataset.pending = 'true';
-          resetBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
-          resetBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600', 'text-black', 'font-semibold');
+          resetBtn.classList.remove('bg-red-600','hover:bg-red-700');
+          resetBtn.classList.add('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
           resetBtn.innerHTML = `<i class="ph-bold ph-warning-circle mr-2"></i>Confirmar Reinício? (clique de novo)`;
           resetConfirmationTimeout = setTimeout(() => {
             if (resetBtn.dataset.pending === 'true') {
               resetBtn.dataset.pending = '';
-              resetBtn.classList.add('bg-red-600', 'hover:bg-red-700');
-              resetBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'text-black', 'font-semibold');
-              resetBtn.innerHTML = `<i class=\"ph-bold ph-arrow-counter-clockwise mr-2\"></i>Reiniciar Jogo`;
+              resetBtn.classList.add('bg-red-600','hover:bg-red-700');
+              resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+              resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciar Jogo`;
             }
           }, 5000);
         } else {
           clearTimeout(resetConfirmationTimeout);
           resetBtn.dataset.pending = '';
-          resetBtn.classList.add('bg-red-600', 'hover:bg-red-700');
-          resetBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'text-black', 'font-semibold');
-          resetBtn.innerHTML = `<i class=\"ph-bold ph-arrow-counter-clockwise mr-2\"></i>Reiniciando...`;
+          resetBtn.classList.add('bg-red-600','hover:bg-red-700');
+          resetBtn.classList.remove('bg-yellow-500','hover:bg-yellow-600','text-black','font-semibold');
+          resetBtn.innerHTML = `<i class="ph-bold ph-arrow-counter-clockwise mr-2"></i>Reiniciando...`;
           resetGame();
         }
       };
@@ -587,63 +391,61 @@
       setupModal();
     }
 
+    // === TIMER DO ADMIN — com tick por segundo ===
     function updateAdminTimer(isVotingOpen, timerStartTime) {
-  const container = document.getElementById('admin-status-container');
-  if (!container) return;
-  if (localTimerInterval) clearInterval(localTimerInterval);
+      const container = document.getElementById('admin-status-container');
+      if (!container) return;
+      if (localTimerInterval) clearInterval(localTimerInterval);
 
-  if (isVotingOpen && timerStartTime) {
-    const startTimeMs = timerStartTime.toMillis();
-    // Se o servidor disser que começou no futuro, começamos agora
-    const effectiveStartMs = Math.min(startTimeMs, Date.now());
+      if (isVotingOpen && timerStartTime) {
+        const startTimeMs = timerStartTime.toMillis();
+        const effectiveStartMs = Math.min(startTimeMs, Date.now());
 
-    const tick = () => {
-      const nowMs = Date.now();
+        const tick = () => {
+          const nowMs = Date.now();
+          let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
+          if (elapsedSeconds < 0) elapsedSeconds = 0;
 
-      let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
-      if (elapsedSeconds < 0) elapsedSeconds = 0;
+          let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+          if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+          if (remainingSeconds < 0) remainingSeconds = 0;
 
-      let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
-      if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
-      if (remainingSeconds < 0) remainingSeconds = 0;
+          if (remainingSeconds > 0) {
+            container.innerHTML = `
+              <div class="flex items-center gap-3 bg-red-100 text-red-700 font-bold py-3 px-5 rounded-lg">
+                <i class="ph-bold ph-timer text-3xl animate-pulse-live"></i>
+                <div>
+                  <span class="text-lg">VOTAÇÃO ABERTA</span>
+                  <span class="block text-2xl">${remainingSeconds}s</span>
+                </div>
+              </div>`;
+          } else {
+            container.innerHTML = `
+              <div class="flex items-center gap-3 bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-lg">
+                <i class="ph-bold ph-check-circle text-3xl"></i>
+                <span class="text-lg">VOTAÇÃO ENCERRADA</span>
+              </div>`;
+            clearInterval(localTimerInterval);
+            if (currentGameState.isVotingOpen) closeVoting();
+          }
+        };
 
-      if (remainingSeconds > 0) {
-        container.innerHTML = `
-          <div class="flex items-center gap-3 bg-red-100 text-red-700 font-bold py-3 px-5 rounded-lg">
-            <i class="ph-bold ph-timer text-3xl animate-pulse-live"></i>
-            <div>
-              <span class="text-lg">VOTAÇÃO ABERTA</span>
-              <span class="block text-2xl">${remainingSeconds}s</span>
-            </div>
-          </div>`;
-      } else {
+        tick(); // atualiza imediatamente
+        localTimerInterval = setInterval(tick, 1000); // e a cada segundo
+      } else if (currentGameState && currentGameState.currentQuestionIndex > -1) {
         container.innerHTML = `
           <div class="flex items-center gap-3 bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-lg">
             <i class="ph-bold ph-check-circle text-3xl"></i>
             <span class="text-lg">VOTAÇÃO ENCERRADA</span>
           </div>`;
-        clearInterval(localTimerInterval);
-        if (currentGameState.isVotingOpen) closeVoting();
+      } else {
+        container.innerHTML = `
+          <div class="flex items-center gap-3 bg-blue-100 text-blue-700 font-bold py-3 px-5 rounded-lg">
+            <i class="ph-bold ph-hourglass text-3xl"></i>
+            <span class="text-lg">AGUARDANDO INÍCIO</span>
+          </div>`;
       }
-    };
-
-    tick(); // atualiza já
-    localTimerInterval = setInterval(tick, 1000);
-  } else if (currentGameState && currentGameState.currentQuestionIndex > -1) {
-    container.innerHTML = `
-      <div class="flex items-center gap-3 bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-lg">
-        <i class="ph-bold ph-check-circle text-3xl"></i>
-        <span class="text-lg">VOTAÇÃO ENCERRADA</span>
-      </div>`;
-  } else {
-    container.innerHTML = `
-      <div class="flex items-center gap-3 bg-blue-100 text-blue-700 font-bold py-3 px-5 rounded-lg">
-        <i class="ph-bold ph-hourglass text-3xl"></i>
-        <span class="text-lg">AGUARDANDO INÍCIO</span>
-      </div>`;
-  }
-}
-
+    }
 
     function updateWordCloud(words) {
       const container = document.getElementById('word-cloud-container');
@@ -659,47 +461,35 @@
         if (word) acc[word] = (acc[word] || 0) + 1;
         return acc;
       }, {});
-
       const wordData = Object.entries(frequencies).map(([text, count]) => ({ text, count }));
-      const counts = wordData.map((d) => d.count);
-      const minCount = Math.min(...counts);
-      const maxCount = Math.max(...counts);
-      const minFontSize = 18, maxFontSize = 72;
+      const counts = wordData.map(d => d.count);
+      const minCount = Math.min(...counts), maxCount = Math.max(...counts);
+      const minFont = 18, maxFont = 72;
 
-      const calculateFontSize = (count) => {
-        if (maxCount === minCount) return (minFontSize + maxFontSize) / 2;
-        const size = minFontSize + ((count - minCount) / (maxCount - minCount)) * (maxFontSize - minFontSize);
-        return Math.max(minFontSize, Math.min(maxFontSize, size));
-      };
+      const sizeFor = (c) => maxCount === minCount ? (minFont+maxFont)/2 : (minFont + ((c-minCount)/(maxCount-minCount))*(maxFont-minFont));
 
-      container.innerHTML = wordData
-        .sort((a, b) => b.count - a.count)
-        .map(({ text, count }, i) => {
-          const fontSize = calculateFontSize(count);
-          const color = WORD_COLORS[i % WORD_COLORS.length];
-          const displayText = text.charAt(0).toUpperCase() + text.slice(1);
-          return `
-            <span class="word-cloud-item" style="font-size: ${fontSize}px; color: ${color};" data-word="${displayText}" data-count="${count}">${displayText}</span>`;
-        })
-        .join('');
+      container.innerHTML = wordData.sort((a,b)=>b.count-a.count).map(({text,count},i)=>{
+        const fontSize = Math.max(minFont, Math.min(maxFont, sizeFor(count)));
+        const color = WORD_COLORS[i % WORD_COLORS.length];
+        const displayText = text.charAt(0).toUpperCase()+text.slice(1);
+        return `<span class="word-cloud-item" style="font-size:${fontSize}px;color:${color}" data-word="${displayText}" data-count="${count}">${displayText}</span>`;
+      }).join('');
 
-      container.querySelectorAll('.word-cloud-item').forEach((el) => {
-        el.addEventListener('click', () => showWordCountModal(el.dataset.word, el.dataset.count));
+      container.querySelectorAll('.word-cloud-item').forEach(el=>{
+        el.addEventListener('click',()=>showWordCountModal(el.dataset.word, el.dataset.count));
       });
     }
 
     function setupModal() {
       const modal = document.getElementById('word-count-modal');
       const closeBtn = document.getElementById('close-modal-btn');
-      const hide = () => modal.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
-      closeBtn.onclick = hide;
-      modal.onclick = (e) => { if (e.target === modal) hide(); };
+      const hide = () => modal.classList.add('opacity-0','scale-95','pointer-events-none');
+      closeBtn.onclick = hide; modal.onclick = (e)=>{ if (e.target === modal) hide(); };
     }
-
-    function showWordCountModal(word, count) {
+    function showWordCountModal(word,count) {
       document.getElementById('modal-word').innerText = word;
       document.getElementById('modal-count').innerText = count;
-      document.getElementById('word-count-modal').classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+      document.getElementById('word-count-modal').classList.remove('opacity-0','scale-95','pointer-events-none');
     }
 
     function renderPlayerView() {
@@ -731,8 +521,8 @@
               <h2 class="text-xl sm:text-2xl font-semibold text-center text-gray-800">${QUESTIONS[currentQuestionIndex]}</h2>
             </div>
             <div class="flex flex-col gap-4">
-              <input type="text" id="response-input" class="w-full text-lg p-3 sm:p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Digite um nome..." />
-              <button id="submit-btn" class="w-full bg-teal-500 text-white font-bold py-3 px-5 text-lg sm:py-4 sm:px-6 sm:text-xl rounded-lg shadow-lg hover:bg-teal-600 transition duration-300">Enviar Resposta</button>
+              <input type="text" id="response-input" class="w-full text-lg p-3 sm:p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500" placeholder="Digite um nome..." />
+              <button id="submit-btn" class="w-full bg-teal-500 text-white font-bold py-3 px-5 text-lg sm:py-4 sm:px-6 sm:text-xl rounded-lg shadow-lg hover:bg-teal-600 transition">Enviar Resposta</button>
             </div>`;
         } else {
           contentHtml = `
@@ -758,44 +548,44 @@
       }
     }
 
+    // === TIMER DO JOGADOR — com tick por segundo ===
     function startPlayerTimer(startTimeMs) {
-  const container = document.getElementById('timer-container');
-  if (!container) return;
-  if (localTimerInterval) clearInterval(localTimerInterval);
+      const container = document.getElementById('timer-container');
+      if (!container) return;
+      if (localTimerInterval) clearInterval(localTimerInterval);
 
-  // Se o “início” vier do futuro, considera o momento atual para não travar
-  const effectiveStartMs = Math.min(startTimeMs, Date.now());
+      const effectiveStartMs = Math.min(startTimeMs, Date.now());
 
-  const render = () => {
-    const nowMs = Date.now();
+      const render = () => {
+        const nowMs = Date.now();
+        let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
+        if (elapsedSeconds < 0) elapsedSeconds = 0;
 
-    let elapsedSeconds = Math.floor((nowMs - effectiveStartMs) / 1000);
-    if (elapsedSeconds < 0) elapsedSeconds = 0;
+        let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
+        if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
+        if (remainingSeconds < 0) remainingSeconds = 0;
 
-    let remainingSeconds = VOTE_DURATION_SECONDS - elapsedSeconds;
-    if (remainingSeconds > VOTE_DURATION_SECONDS) remainingSeconds = VOTE_DURATION_SECONDS;
-    if (remainingSeconds < 0) remainingSeconds = 0;
+        if (remainingSeconds > 0) {
+          container.innerHTML = `
+            <p class="text-4xl sm:text-5xl font-bold text-red-600">${remainingSeconds}s</p>
+            <p class="text-base sm:text-lg text-gray-600">Tempo restante para votar</p>`;
+        } else {
+          container.innerHTML = `
+            <p class="text-4xl sm:text-5xl font-bold text-gray-500">0s</p>
+            <p class="text-base sm:text-lg text-gray-600">Tempo Esgotado!</p>`;
+          clearInterval(localTimerInterval);
+          const input = document.getElementById('response-input');
+          const btn = document.getElementById('submit-btn');
+          if (input) input.disabled = true;
+          if (btn) btn.disabled = true;
+        }
+      };
 
-    if (remainingSeconds > 0) {
-      container.innerHTML = `
-        <p class="text-4xl sm:text-5xl font-bold text-red-600">${remainingSeconds}s</p>
-        <p class="text-base sm:text-lg text-gray-600">Tempo restante para votar</p>`;
-    } else {
-      container.innerHTML = `
-        <p class="text-4xl sm:text-5xl font-bold text-gray-500">0s</p>
-        <p class="text-base sm:text-lg text-gray-600">Tempo Esgotado!</p>`;
-      clearInterval(localTimerInterval);
-      const input = document.getElementById('response-input');
-      const btn = document.getElementById('submit-btn');
-      if (input) input.disabled = true;
-      if (btn) btn.disabled = true;
+      render(); // já atualiza
+      localTimerInterval = setInterval(render, 1000); // e segue de 1 em 1s
     }
-  };
 
-  render(); // atualiza já
-  localTimerInterval = setInterval(render, 1000);
-}
-
+    initializeFirebase();
   </script>
 </body>
 </html>
